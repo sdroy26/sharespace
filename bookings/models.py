@@ -1,0 +1,20 @@
+from django.conf import settings
+from django.db import models
+from django.db.models import Q,F
+from resources.models import Resource
+class Booking(models.Model):
+ class Status(models.TextChoices): PENDING='PENDING','Pending'; APPROVED='APPROVED','Approved'; REJECTED='REJECTED','Rejected'; WAITLISTED='WAITLISTED','Waitlisted'; CANCELLED='CANCELLED','Cancelled'; CHECKED_OUT='CHECKED_OUT','Checked out'; RETURNED='RETURNED','Returned'; OVERDUE='OVERDUE','Overdue'
+ resource=models.ForeignKey(Resource,on_delete=models.PROTECT,related_name='bookings'); borrower=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name='bookings'); start=models.DateTimeField(); end=models.DateTimeField(); purpose=models.CharField(max_length=300); status=models.CharField(max_length=12,choices=Status.choices,default=Status.PENDING); decision_reason=models.CharField(max_length=350,blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True); decided_at=models.DateTimeField(null=True,blank=True); cancelled_at=models.DateTimeField(null=True,blank=True); checked_out_at=models.DateTimeField(null=True,blank=True); returned_at=models.DateTimeField(null=True,blank=True); return_confirmed_by=models.ForeignKey(settings.AUTH_USER_MODEL,null=True,blank=True,on_delete=models.SET_NULL,related_name='confirmed_returns'); extension_start=models.DateTimeField(null=True,blank=True); extension_end=models.DateTimeField(null=True,blank=True)
+ class Meta:ordering=['-created_at']; indexes=[models.Index(fields=['resource','start','end','status']),models.Index(fields=['borrower','status'])]; constraints=[models.CheckConstraint(condition=Q(end__gt=F('start')),name='booking_end_after_start')]
+ def __str__(self):return f'{self.resource.name} — {self.borrower.username}'
+class ConditionReport(models.Model):
+ class Stage(models.TextChoices): CHECKOUT='CHECKOUT','Check-in'; RETURN='RETURN','Return'
+ class Condition(models.TextChoices): GOOD='GOOD','Good'; MINOR='MINOR','Minor issue'; DAMAGED='DAMAGED','Damage observed'; NOT_TESTED='NOT_TESTED','Not tested'
+ booking=models.ForeignKey(Booking,on_delete=models.CASCADE,related_name='condition_reports'); reporter=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT); stage=models.CharField(max_length=10,choices=Stage.choices); condition=models.CharField(max_length=12,choices=Condition.choices); notes=models.TextField(max_length=1200); damage_visible=models.BooleanField(default=False); image=models.ImageField(upload_to='conditions/%Y/%m/',blank=True); created_at=models.DateTimeField(auto_now_add=True)
+ class Meta:ordering=['created_at'];constraints=[models.UniqueConstraint(fields=['booking','stage'],name='one_condition_report_per_stage')]
+class IncidentReport(models.Model):
+ class Category(models.TextChoices): DAMAGE='DAMAGE','Damage'; DELAY='DELAY','Delay'; MISSING='MISSING','Missing item'; SCHEDULING='SCHEDULING','Scheduling conflict'; SAFETY='SAFETY','Safety concern'; OTHER='OTHER','Other'
+ class Status(models.TextChoices): OPEN='OPEN','Open'; REVIEW='REVIEW','In review'; RESOLVED='RESOLVED','Resolved'; DISMISSED='DISMISSED','Dismissed'
+ class Severity(models.TextChoices): LOW='LOW','Low'; MEDIUM='MEDIUM','Medium'; HIGH='HIGH','High'
+ booking=models.ForeignKey(Booking,on_delete=models.PROTECT,related_name='incidents'); reporter=models.ForeignKey(settings.AUTH_USER_MODEL,on_delete=models.PROTECT,related_name='reported_incidents'); category=models.CharField(max_length=12,choices=Category.choices); description=models.TextField(max_length=2000); image=models.ImageField(upload_to='incidents/%Y/%m/',blank=True); severity=models.CharField(max_length=8,choices=Severity.choices,default=Severity.MEDIUM); status=models.CharField(max_length=10,choices=Status.choices,default=Status.OPEN); assigned_reviewer=models.ForeignKey(settings.AUTH_USER_MODEL,null=True,blank=True,on_delete=models.SET_NULL,related_name='assigned_incidents'); resolution_notes=models.TextField(blank=True); created_at=models.DateTimeField(auto_now_add=True); updated_at=models.DateTimeField(auto_now=True)
+ class Meta:ordering=['-created_at']
