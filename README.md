@@ -1,227 +1,149 @@
-# ShareSpace — Trusted Resource Sharing Platform
+# ShareSpace
 
-**ShareSpace** is a Django-based web application designed to help institutions and communities share underutilised spaces, equipment, and technical resources through a structured, transparent, and accountable borrowing process.
+**Good resources shouldn't sit idle.** ShareSpace is a Django campus resource-sharing MVP focused on safe access, transparent decisions, condition records, and auditable handovers.
 
-The platform focuses on the complete resource-sharing lifecycle, from resource discovery and booking requests to approval, check-in, return, and record keeping.
+## What is implemented
 
-## Problem Statement
+- Django authentication with a custom user model; registration always creates a borrower account.
+- Resource directory with search, category/location filters, pagination, owner listing management, publication review, and availability windows.
+- Booking request validation for future times, advance notice, duration, institution, training, active booking limits, allowed availability windows, duplicate requests, and overlap checks.
+- Owner approval/rejection with mandatory rejection reasons and an availability recheck.
+- FIFO-style waitlist promotion to pending owner review when a released slot is compatible.
+- Check-in and return condition reports, optional image upload, supervised-return confirmation, incident reports, persisted notifications, and audit timeline.
+- Borrower, owner, and institutional dashboards based on database records.
+- Manager verification, incident review, user access controls, and read-only audit history.
+- Responsive editorial UI, no remote font/icon dependencies, CSRF-protected state changes, development seed data, and overdue management command.
 
-Educational institutions, laboratories, makerspaces, and community organisations often have valuable resources that remain unused, while students, researchers, and creators may struggle to access them affordably.
+## Stack
 
-Informal booking processes can lead to scheduling conflicts, unclear eligibility requirements, incomplete borrowing records, and difficulty tracking damage or overdue returns.
+Python 3.12+; Django 5.2; SQLite for local development; Django templates; HTML/CSS/vanilla JavaScript; Pillow; WhiteNoise; Gunicorn. The core app does not require any external API credentials.
 
-ShareSpace aims to organise this process in one application while supporting resource-owner control, responsible access, and accountability.
+## Prerequisites and local setup
 
-## Key Features
-
-- **Resource Management:** Organise information about shared resources.
-- **Resource Discovery:** Help users find resources that meet their needs.
-- **Booking Requests:** Allow users to request access to resources.
-- **Eligibility and Availability Checks:** Support validation of applicable booking requirements.
-- **Approval Workflow:** Allow authorised owners or managers to review requests.
-- **Check-In and Return:** Support the resource handover and return lifecycle.
-- **Condition Reporting:** Record resource condition where implemented.
-- **Incident Tracking:** Support recording issues such as damage or delays where implemented.
-- **Notifications:** Communicate relevant booking events where configured.
-- **Audit History:** Support traceability of important actions where implemented.
-- **Fair Resource Access:** Provide a foundation for transparent allocation and usage policies.
-
-*Note: The availability of individual features depends on the implementation in the submitted version of the project.*
-
-## Technology Stack
-
-| Component | Technology |
-|---|---|
-| Backend | Python, Django |
-| Frontend | HTML, CSS, Django Templates |
-| Browser Interactions | Vanilla JavaScript |
-| Database — local development | SQLite |
-| Database — intended production | PostgreSQL, when configured |
-| Application Routing | Django URL configuration |
-| Data Access | Django ORM |
-
-## Project Structure
-
-```text
-ShareSpace/
-├── manage.py
-├── requirements.txt
-├── config/
-├── accounts/
-├── resources/
-├── bookings/
-├── operations/
-├── audit/
-├── notifications/
-├── core/
-├── templates/
-├── static/
-└── README.md
-```
-
-The exact files and directories may vary depending on the current repository version.
-
-## Getting Started
-
-### Prerequisites
-
-- Python installed
-- Git installed if cloning the repository
-- A terminal or command prompt
-
-### 1. Clone the Repository
-
-Replace the placeholder with your public GitHub repository URL.
-
-```bash
-git clone <YOUR_GITHUB_REPOSITORY_URL>
-cd <PROJECT_DIRECTORY>
-```
-
-Run the remaining commands from the directory containing `manage.py`.
-
-### 2. Create a Virtual Environment
-
-**Windows**
+Use Python 3.12 or newer. From the project directory:
 
 ```bash
 python -m venv .venv
-.venv\Scripts\activate
-```
-
-**macOS / Linux**
-
-```bash
-python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux:
 source .venv/bin/activate
-```
-
-### 3. Install Dependencies
-
-```bash
-python -m pip install -r requirements.txt
-```
-
-### 4. Apply Database Migrations
-
-```bash
+pip install -r requirements.txt
+cp .env.example .env  # Windows: copy .env.example .env
+python manage.py makemigrations accounts resources bookings audit notifications
 python manage.py migrate
-```
-
-### 5. Load Demo Data (If Available)
-
-If the project includes the `seed_demo` management command:
-
-```bash
+python manage.py createsuperuser
 python manage.py seed_demo
-```
-
-### 6. Start the Development Server
-
-```bash
 python manage.py runserver
 ```
 
-Open the local development address printed in your terminal.
+Open http://127.0.0.1:8000. If your platform does not support copying `.env.example`, create `.env` manually. The development fallback secret key is not suitable for production.
 
-## Testing and Validation
+### Demo credentials
 
-Run Django's configuration checks:
+All demo accounts use password `ShareSpaceDemo!26`:
+
+| Username | Role |
+|---|---|
+| `campusadmin` | Institution manager (staff access) |
+| `maya_owner` | Resource owner |
+| `arjun_owner` | Resource owner |
+| `isha_borrower` | Borrower |
+| `rohan_borrower` | Borrower |
+| `nina_borrower` | Borrower |
+| `dev_borrower` | Borrower |
+
+The seed command is idempotent for named accounts, resources, and its representative records. It does not reset existing account passwords or delete application data. Do not use demo credentials in a public deployment.
+
+## Tests and checks
 
 ```bash
 python manage.py check
-```
-
-Run the automated test suite:
-
-```bash
 python manage.py test
+python manage.py test accounts resources bookings operations core
 ```
 
-These commands should be executed before submission. Their inclusion in this README does not imply that the tests have already passed.
+Django's test runner discovers tests in the app `tests.py` files. `pytest` is also configured if you prefer `pytest`. Tests were authored but **could not be executed in the generation environment** because Django dependencies could not be downloaded there (network/DNS unavailable). Run the commands above in an environment with package access and fix any environment-specific issues before presenting this as production-ready.
 
-## How ShareSpace Works
+## Judge walkthrough (3–5 minutes)
 
-The intended resource-sharing workflow is:
+1. Sign in as `maya_owner` and open Owner overview / Managed resources.
+2. Sign in as `isha_borrower`, find a published resource, inspect its Trust & readiness panel, and request a future slot.
+3. Sign in as the relevant owner and review the request in Booking requests.
+4. Return to the borrower and inspect the notification and booking detail.
+5. For a lifecycle demo, use a fresh approved booking whose start is within the allowed check-in window, submit the check-in condition report, then record return condition.
+6. Show the timeline and condition comparison. Submit an issue to demonstrate incident review.
 
-1. An authorised owner lists a resource and defines its usage conditions.
-2. A borrower discovers the resource and reviews the requirements.
-3. The borrower submits a booking request.
-4. The application validates the applicable requirements.
-5. The owner or authorised manager reviews the request.
-6. The request is approved, rejected, or handled through a waiting list if supported.
-7. The handover and initial condition are recorded where supported.
-8. The resource is used and returned.
-9. The return condition and any relevant incidents are recorded where supported.
-10. Authorised users can review the available transaction history.
+Seed data includes sample booking states and records for dashboard density; not every sample booking is positioned at a time that permits a live check-in. For a live walkthrough, create a new booking starting 10–20 minutes in the future, approve it, and check it in during that window. For resources with a configured availability window, select a time wholly inside that window.
 
-## Security and Privacy
+## Architecture
 
-The application is intended to support responsible resource sharing through appropriate access controls and server-side validation.
+- `accounts`: custom user model, safe registration, profile editing.
+- `resources`: resource metadata, availability windows, eligibility records, discovery, owner listing workflows.
+- `bookings`: booking, condition report, incident models; forms; booking service transitions.
+- `notifications`: persisted recipient-scoped in-app notifications and read actions.
+- `audit`: append-only event model and trusted service helper.
+- `operations`: institutional review, user access, incident management, audit views.
+- `core`: public pages and role-based dashboards.
 
-For deployment and use:
+Important transitions are implemented in `bookings/services.py`; views call those functions rather than accepting arbitrary status values. The audit log is not editable through normal views and is read-only in Django admin. A platform superuser can still alter the database directly, as is inherent in an application administrator role.
 
-- Keep secret keys and credentials out of source control.
-- Configure production settings securely.
-- Disable Django debug mode in production.
-- Configure allowed hosts correctly.
-- Use a persistent production database.
-- Restrict access to personal information and operational records.
-- Use fictional or authorised demonstration data.
+## Fairness and allocation policy
 
-## Deployment
+- Eligibility and safety checks take precedence over access.
+- Valid requests are owner-reviewed; requests are not automatically approved.
+- Conflicting valid requests can be waitlisted in creation-time order. A freed slot promotes the earliest compatible waitlisted request to **pending owner review**, not directly to approved.
+- Approved borrowers are not silently displaced.
+- Rejections require a reason; the competing borrower's identity is not exposed.
+- Active booking limits are enforced per resource/user workflow. No AI model assigns priority or liability.
 
-ShareSpace can be deployed to a hosting platform that supports its Django configuration.
+## Database and concurrency notes
 
-A production deployment may require:
+SQLite is convenient for local demos but does not provide the same row-locking semantics as PostgreSQL. The service layer uses `transaction.atomic()` and `select_for_update()` for transition consistency; on SQLite, row-level locking is not equivalent to PostgreSQL. For production, configure PostgreSQL and add a PostgreSQL exclusion constraint over a timestamp range to prevent overlapping active reservations at the database level. The current code performs application-level overlap checks; simultaneous conflicting approvals should be load-tested against the intended production database.
 
-- Production environment variables
-- A persistent database such as PostgreSQL
-- Correct static-file configuration
-- Database migrations
-- Secure host and debug settings
-- Verification of the main booking workflow
+Availability is modeled as explicit windows. If a resource has one or more windows, a requested booking must fit fully inside one window. If no windows exist, availability is governed by resource status, advance notice, duration, and active bookings. Recurring weekly schedules are not implemented in this MVP.
 
-The application should be tested after deployment before a live URL is shared.
+## Production deployment
 
-## Limitations and Future Improvements
+1. Install dependencies and use a persistent PostgreSQL database. Do not use SQLite on ephemeral deployment storage for multi-user production.
+2. Set environment variables: `SECRET_KEY` to a strong random value, `DEBUG=False`, `ALLOWED_HOSTS=your-host.example`, and `SECURE_SSL_REDIRECT=True` when HTTPS is correctly configured. Add `CSRF_TRUSTED_ORIGINS=https://your-host.example` to settings if cross-origin HTTPS POSTs require it (the current settings file should be extended to parse this variable before deployment).
+3. Set `DATABASE_URL` to a PostgreSQL connection URL (and `DB_SSLMODE=require` for a managed TLS database). The settings parse PostgreSQL URLs and retain SQLite when `DATABASE_URL` is blank. Do not commit credentials.
+4. Run `python manage.py makemigrations` as needed, `python manage.py migrate`, `python manage.py collectstatic`, and create a real superuser. Do not run `seed_demo` in production.
+5. Start with `gunicorn config.wsgi:application`. The included `Procfile` provides this command for compatible platforms.
+6. WhiteNoise serves collected static assets. Uploaded media is stored on the local filesystem by default; many free hosting filesystems are ephemeral. Use a persistent media volume or private object storage for uploaded images, and configure access controls/retention before production.
+7. Run `python manage.py check --deploy`, review HTTPS/cookie settings, configure backups and retention, and test restore procedures.
 
-Potential future improvements include:
+Free hosting tiers, persistent storage, database quotas, and usage limits change frequently. Confirm current provider terms rather than assuming a free tier is permanent. No deployment is included or claimed by this source delivery.
 
-- More advanced resource search and filtering
-- Stronger eligibility and training verification
-- Improved waiting-list and fair-allocation policies
-- More comprehensive notifications
-- Resource utilisation reporting
-- Enhanced audit and incident management
-- Additional automated tests
-- Production monitoring and backup procedures
-- Optional AI-assisted resource matching, with appropriate human oversight
+## Security and privacy notes
 
-These items represent potential improvements and should not be interpreted as existing functionality unless implemented.
+- Django password hashing, CSRF middleware, ORM queries, template escaping, POST state changes, role/object checks, and upload size/type checks are used.
+- Registration cannot self-assign owner/manager roles. Institutional role assignment is manager-only; platform administration remains separate via Django superuser.
+- Verification evidence is represented by reviewed statuses rather than identity-document uploads. Do not upload sensitive documents or unrelated personal information.
+- Condition and incident images are stored under separate media paths, but the default development media serving is not a private-media access-control solution. Before production, use authenticated media views or private object storage for sensitive uploads.
+- Basic login rate limiting is not bundled. Add trusted proxy-aware rate limiting at the reverse proxy or a reviewed Django package before public exposure.
+- Configure data retention, deletion requests, institutional privacy policies, backups, and incident response before production.
 
-## AI and External Services
+## External services and AI disclosure
 
-The described application uses conventional Django request handling, validation, database operations, and rendered responses. No AI model, agent framework, or prompt pipeline is identified in the current project description.
+No AI feature, paid API, map service, SMTP provider, or external authentication is required or called by the core application. Django's console email backend is configured by default. SMTP can be configured through environment variables in a deployment-specific settings extension. The interface uses local CSS and system fonts.
 
-Any external services or AI tools actually used during development should be disclosed in the final submission.
+## Known limitations / next steps
 
-## Team Contributions
+- Add migrations generated and reviewed for the target Django version to version control before a formal release.
+- Add PostgreSQL exclusion constraints and concurrency integration tests.
+- Complete extension-request UI and decision workflow; the model includes extension fields but the full extension interface is not implemented.
+- Add explicit owner return-confirmation UI on the booking detail (the service and POST endpoint exist).
+- Add private media delivery, login rate limiting, and comprehensive upload content sniffing.
+- Add recurring availability rules, automated reminders/scheduler, richer suitability scoring, and more extensive test coverage.
+- Configure institutional policy for data retention and verification before real campus use.
 
-Add the actual names and contributions of each team member.
+## Team contributions
 
-- **Contributor 1:** [Describe the frontend or UI work personally completed.]
-- **Contributor 2:** [Describe the backend, database, or workflow work personally completed.]
+- Product / strategy: [Name]
+- Backend / Django: [Name]
+- Frontend / UX: [Name]
+- QA / deployment: [Name]
 
-Contributions should accurately reflect each member's work.
+## Licences
 
-## Project Links
-
-- **GitHub Repository:** [Insert repository URL]
-- **Live Demo:** [Insert working deployment URL]
-- **Project Report:** [Insert publicly accessible PDF URL]
-
-## Acknowledgements
-
-Developed as a resource-sharing solution for the hackathon challenge **“Unlock Underused Equipment and Spaces.”**
-
+The project code is provided for hackathon use. Runtime dependencies are open-source; check the licence of each pinned dependency and retain applicable notices when redistributing. No third-party fonts, icons, or image APIs are bundled.
