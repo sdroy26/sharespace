@@ -1,1 +1,13 @@
 {% extends 'base.html' %}{% block content %}<section class="error-state"><div class="error-code">500</div><h1>Something went wrong</h1><p>The application could not complete that request. Please try again later.</p><a class="button" href="{% url 'home' %}">Return home</a></section>{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Server Error | ShareSpace</title>
+</head>
+<body>
+    <h1>Something went wrong</h1>
+    <p>Please try again later.</p>
+    <a href="/">Return to home</a>
+</body>
+</html>
