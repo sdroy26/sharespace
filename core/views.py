@@ -29,4 +29,10 @@ def owner_dashboard(request):
  return render(request,'owner/dashboard.html',{'resource_count':resources.count(),'pending':bookings.filter(status='PENDING').count(),'upcoming':bookings.filter(status='APPROVED',start__gte=timezone.now()).order_by('start')[:6],'checked_out':bookings.filter(status__in=('CHECKED_OUT','OVERDUE')),'incidents':IncidentReport.objects.filter(booking__resource__in=resources).exclude(status__in=('RESOLVED','DISMISSED'))[:5],'resources':resources[:5]})
 def error_403(request,exception=None):return render(request,'errors/403.html',status=403)
 def error_404(request,exception=None):return render(request,'errors/404.html',status=404)
-def error_500(request):return render(request,'errors/500.html',status=500)
+from django.http import HttpResponse
+
+def error_500(request):
+    return HttpResponse(
+        "Something went wrong. Please try again later.",
+        status=500
+    )
