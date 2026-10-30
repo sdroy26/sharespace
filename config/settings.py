@@ -26,3 +26,20 @@ CSRF_TRUSTED_ORIGINS = [
     for u in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
     if u.strip()
 ]
+
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+
+    "accounts",
+    "core",
+    "resources",
+    "bookings",
+    "operations",
+    "notifications",
+    "audit",
+]
