@@ -89,7 +89,12 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-DATABASE_URL = os.getenv("DATABASE_URL", "").strip()
+DATABASE_URL = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("STORAGE_DATABASE_URL")
+    or os.getenv("STORAGE_POSTGRES_URL")
+    or ""
+).strip()
 if DATABASE_URL:
     parsed = urlparse(DATABASE_URL)
     if parsed.scheme not in {"postgres", "postgresql", "postgresql+psycopg"}:
